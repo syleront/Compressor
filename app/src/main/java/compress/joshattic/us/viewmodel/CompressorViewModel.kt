@@ -118,6 +118,7 @@ class CompressorViewModel(application: Application) : AndroidViewModel(applicati
         val showTargetSizePreset = prefs.getBoolean("show_target_size_preset", true)
         val autoSaveSupported = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
         val autoSaveToPhotos = autoSaveSupported && prefs.getBoolean("auto_save_photos", true)
+        val copyMetadataEnabled = prefs.getBoolean("copy_metadata", true)
         val customOutputTreeUri = prefs.getString(PREF_CUSTOM_OUTPUT_TREE_URI, null)
         val customOutputFolderName = prefs.getString(PREF_CUSTOM_OUTPUT_FOLDER_NAME, null)
         val highConfig = loadQualityPresetConfig("preset_high", QualityPresetConfig(resolutionShortSide = 0, targetFps = 0, sizeRatio = 0.7f, audioBitrate = 320_000))
@@ -148,6 +149,7 @@ class CompressorViewModel(application: Application) : AndroidViewModel(applicati
             showStorageSaved = showStorageSaved,
             showTargetSizePreset = showTargetSizePreset,
             autoSaveToPhotos = autoSaveToPhotos,
+            copyMetadataEnabled = copyMetadataEnabled,
             customOutputTreeUri = customOutputTreeUri,
             customOutputFolderName = customOutputFolderName,
             highPresetConfig = highConfig,
@@ -1053,6 +1055,14 @@ class CompressorViewModel(application: Application) : AndroidViewModel(applicati
         }
     }
 
+    fun toggleCopyMetadata() {
+        _uiState.update {
+            val newValue = !it.copyMetadataEnabled
+            prefs.edit { putBoolean("copy_metadata", newValue) }
+            it.copy(copyMetadataEnabled = newValue)
+        }
+    }
+
     fun setCustomOutputFolder(context: Context, treeUri: Uri) {
         try {
             releasePersistedTreeUri(context, _uiState.value.customOutputTreeUri)
@@ -1264,6 +1274,7 @@ class CompressorViewModel(application: Application) : AndroidViewModel(applicati
                 showStorageSaved = current.showStorageSaved,
                 showTargetSizePreset = current.showTargetSizePreset,
                 autoSaveToPhotos = current.autoSaveToPhotos,
+                copyMetadataEnabled = current.copyMetadataEnabled,
                 customOutputTreeUri = current.customOutputTreeUri,
                 customOutputFolderName = current.customOutputFolderName,
                 allCodecsEnabled = current.allCodecsEnabled,
@@ -1417,10 +1428,25 @@ class CompressorViewModel(application: Application) : AndroidViewModel(applicati
             .setEncoderFactory(encoderFactory)
             .addListener(object : Transformer.Listener {
                 override fun onCompleted(composition: Composition, exportResult: ExportResult) {
+                     if (_uiState.value.copyMetadataEnabled) {
+                         val app = getApplication<Application>()
+                         val copied = compress.joshattic.us.utils.MetadataCopyUtils.copyMetadata(
+                             app,
+                             inputUri,
+                             outputFile
+                         )
+                         if (!copied) {
+                             _uiState.update {
+                                 val warn = app.getString(R.string.warning_metadata_skipped)
+                                 it.copy(warnings = (it.warnings + warn).distinct())
+                             }
+                         }
+                     }
+
                      val finalSize = outputFile.length()
                      val savedBytes = currentState.originalSize - finalSize
                      var newTotal = _uiState.value.totalSavedBytes
-                     
+                      
                      if (savedBytes > 0) {
                          newTotal += savedBytes
                          prefs.edit { putLong("total_saved_bytes", newTotal) }
