@@ -17,6 +17,7 @@ mockito = "5.5.0"
 mockito-kotlin = "5.1.0"
 robolectric = "4.11.1"
 androidxTestCore = "1.5.0"
+mp4parser = "1.1.22"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -46,6 +47,7 @@ mockito-core = { group = "org.mockito", name = "mockito-core", version.ref = "mo
 mockito-kotlin = { group = "org.mockito.kotlin", name = "mockito-kotlin", version.ref = "mockito-kotlin" }
 robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "robolectric" }
 androidx-testcore = { group = "androidx.test", name = "core", version.ref = "androidxTestCore" }
+mp4parser = { group = "com.googlecode.mp4parser", name = "isoparser", version.ref = "mp4parser" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

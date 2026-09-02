@@ -169,6 +169,9 @@
     <string name="header_display_options">Display options</string>
     <string name="auto_save_photos_title">Automatically save</string>
     <string name="auto_save_photos_subtitle">Automatically save compressed videos after compression</string>
+    <string name="copy_metadata_title">Copy original metadata</string>
+    <string name="copy_metadata_subtitle">Preserve date, GPS, camera info and other metadata from the original video</string>
+    <string name="warning_metadata_skipped">Source format not supported for metadata copying, original metadata could not be preserved</string>
     <string name="output_location_title">Save location</string>
     <string name="output_location_default">Photos (Movies/Compressor)</string>
     <string name="output_location_subtitle">Where compressed videos are saved by default</string>

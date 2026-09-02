@@ -255,6 +255,7 @@ fun CompressorApp(viewModel: CompressorViewModel) {
                                 state = state,
                                 onBack = { currentSettingsDestination = SettingsDestination.MAIN },
                                 onToggleAutoSaveToPhotos = { viewModel.toggleAutoSaveToPhotos() },
+                                onToggleCopyMetadata = { viewModel.toggleCopyMetadata() },
                                 onChangeOutputLocation = {
                                     val initial = state.customOutputTreeUri?.let { Uri.parse(it) }
                                     openDocumentTreeLauncher.launch(initial)

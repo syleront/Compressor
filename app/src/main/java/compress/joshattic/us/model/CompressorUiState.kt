@@ -66,6 +66,8 @@ data class CompressorUiState(
     val useMbps: Boolean = false,
     val showStorageSaved: Boolean = true,
     val showTargetSizePreset: Boolean = true,
+    /** Copies metadata (date, GPS, camera info, etc.) from the source onto the compressed output. */
+    val copyMetadataEnabled: Boolean = true,
     /** Only meaningful on Android 10+; forced off on older versions. */
     val autoSaveToPhotos: Boolean = false,
     val customOutputTreeUri: String? = null,

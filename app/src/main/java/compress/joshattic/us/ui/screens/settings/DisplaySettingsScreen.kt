@@ -93,6 +93,7 @@ fun DisplaySettingsScreen(
     state: CompressorUiState,
     onBack: () -> Unit,
     onToggleAutoSaveToPhotos: () -> Unit,
+    onToggleCopyMetadata: () -> Unit,
     onChangeOutputLocation: () -> Unit,
     onResetOutputLocation: () -> Unit,
     onToggleShowBitrate: () -> Unit,
@@ -222,6 +223,47 @@ fun DisplaySettingsScreen(
                                 color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
                             )
                         }
+
+                        // Copy original metadata
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    haptics.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                                    onToggleCopyMetadata()
+                                }
+                                .padding(horizontal = 20.dp, vertical = 18.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = stringResource(R.string.copy_metadata_title),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    text = stringResource(R.string.copy_metadata_subtitle),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Switch(
+                                checked = state.copyMetadataEnabled,
+                                onCheckedChange = {
+                                    haptics.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                                    onToggleCopyMetadata()
+                                }
+                            )
+                        }
+
+                        HorizontalDivider(
+                            modifier = Modifier.padding(horizontal = 20.dp),
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+                        )
 
                         // Save location
                         val hasCustomLocation = !state.customOutputTreeUri.isNullOrBlank()
