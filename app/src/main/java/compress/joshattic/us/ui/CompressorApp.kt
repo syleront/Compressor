@@ -1,8 +1,11 @@
 package compress.joshattic.us.ui
 
 import compress.joshattic.us.ui.components.WhatsNewDialog
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
 import android.view.WindowManager
 import android.widget.Toast
 import androidx.activity.BackEventCompat
@@ -149,6 +152,31 @@ fun CompressorApp(viewModel: CompressorViewModel) {
     val pickMedia = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         if (uri != null) {
             viewModel.updateSelectedUri(context, uri)
+        }
+    }
+
+    // Без permission READ_MEDIA_VIDEO (Android 13+) Photo Picker маскирует настоящее имя
+    // файла плейсхолдером "<id>.mp4". Запрашиваем доступ до открытия пикера.
+    val videoPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            pickMedia.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.VideoOnly))
+        } else {
+            // Пользователь отказал — пикер всё равно откроется через транзиентный доступ,
+            // но имена будут маскироваться. Предлагаем повторный выбор без запроса снова.
+            pickMedia.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.VideoOnly))
+        }
+    }
+
+    fun launchVideoPicker() {
+        val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            Manifest.permission.READ_MEDIA_VIDEO
+        } else null // До Android 13 пикер не маскирует имена — дополнительный доступ не нужен.
+        if (permission != null && context.checkSelfPermission(permission) != PackageManager.PERMISSION_GRANTED) {
+            videoPermissionLauncher.launch(permission)
+        } else {
+            pickMedia.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.VideoOnly))
         }
     }
 
@@ -349,7 +377,7 @@ fun CompressorApp(viewModel: CompressorViewModel) {
                                     0 -> EmptyScreen(
                                         totalSaved = state.formattedTotalSaved,
                                         showStorageSaved = state.showStorageSaved,
-                                        onPick = { pickMedia.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.VideoOnly)) }
+                                        onPick = { launchVideoPicker() }
                                     )
                                     2 -> {
                                         if (state.error != null) {

@@ -359,6 +359,12 @@ class CompressorViewModel(application: Application) : AndroidViewModel(applicati
                     }
                     cursor.close()
                 }
+                // DISPLAY_NAME часто пустой/числовой (Photo Picker без permission на чтение медиа
+                // маскирует настоящее имя файла плейсхолдером "<id>.mp4"). Пробуем достать имя
+                // из MediaStore, DocumentFile или пути URI, пока не найдём вменяемое.
+                if (!isReasonableName(originalName)) {
+                    originalName = resolveFallbackName(context, uri)
+                }
                 if (size <= 0L) {
                     context.contentResolver.openFileDescriptor(uri, "r")?.use {
                         size = it.statSize
@@ -457,7 +463,63 @@ class CompressorViewModel(application: Application) : AndroidViewModel(applicati
             }
         }
     }
-    
+
+    /** Имя считается "вменяемым", если не пустое и не похоже на числовой/хеш-мусор провайдера. */
+    private fun isReasonableName(name: String?): Boolean {
+        if (name.isNullOrBlank()) return false
+        val trimmed = name.trim()
+        // Photo Picker синтезирует имена вида "<числовой id>.mp4", когда у приложения нет
+        // permission на чтение медиа. У вменяемого имени (VID_..., IMG_..., "my video")
+        // в основе всегда есть буква.
+        val stem = trimmed.substringBeforeLast(".")
+        if (stem.isNotEmpty() && stem.none { it.isLetter() }) return false
+        return true
+    }
+
+    /**
+     * Пытается восстановить настоящее имя файла, когда DISPLAY_NAME недоступен.
+     * Источники по убыванию надёжности: DocumentFile → последний сегмент пути URI.
+     */
+    private fun resolveFallbackName(context: Context, uri: Uri): String? {
+        // 0. Photo picker: content://media/picker/0/.../media/<id> — для ЛОКАЛЬНЫХ файлов
+        //    <id> это _id записи MediaStore, откуда достаём настоящее имя напрямую.
+        val pickerId = uri.lastPathSegment?.substringAfterLast('/')?.toLongOrNull()
+        if (pickerId != null) {
+            try {
+                context.contentResolver.query(
+                    MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
+                    arrayOf(MediaStore.Video.Media.DISPLAY_NAME),
+                    "${MediaStore.Video.Media._ID}=?", arrayOf(pickerId.toString()), null
+                )?.use { c ->
+                    if (c.moveToFirst()) {
+                        val n = c.getString(c.getColumnIndexOrThrow(MediaStore.Video.Media.DISPLAY_NAME))
+                        if (isReasonableName(n)) return n.substringBeforeLast(".")
+                    }
+                }
+            } catch (_: Exception) {
+            }
+        }
+        // 1. DocumentFile корректно резолвит DocumentsProvider (файловые менеджеры и т.п.).
+        try {
+            DocumentFile.fromSingleUri(context, uri)?.name
+                ?.substringBeforeLast(".")
+                ?.takeIf { isReasonableName(it) }
+                ?.let { return it }
+        } catch (_: Exception) {
+        }
+        // 2. Последний сегмент пути: content://…/video/VID_20260101_1234.mp4 → имя из пути.
+        return try {
+            uri.lastPathSegment
+                ?.substringAfterLast('/')
+                ?.substringBefore('?')
+                ?.let { java.net.URLDecoder.decode(it, "UTF-8") }
+                ?.substringBeforeLast(".")
+                ?.takeIf { isReasonableName(it) }
+        } catch (_: Exception) {
+            null
+        }
+    }
+
     fun markAsShared() {
         _uiState.update { it.copy(hasShared = true) }
     }
